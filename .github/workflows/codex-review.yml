@@ -32,33 +32,37 @@ jobs:
         with:
           fetch-depth: 0 # Full history for better context
 
+      - name: Configure Git
+        run: |
+          git config user.name "codex-bot"
+          git config user.email "codex-bot@users.noreply.github.com"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Load review instructions
-        id: load-instructions
+      - name: Prepare review instructions
         run: |
-          # Read the review template
-          INSTRUCTIONS=$(cat .github/pr_review_prompt.md)
-          # Use heredoc to preserve multiline content
-          echo "CUSTOM_INSTRUCTIONS<<EOF" >> $GITHUB_OUTPUT
-          echo "$INSTRUCTIONS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Copy the review template for Codex
+          cp .github/pr_review_prompt.md /tmp/codex-review-prompt.md
 
       - name: Run Codex Review
         id: codex
-        uses: openai/codex-action@main
+        uses: openai/codex-action@v1
         timeout-minutes: 15
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 
           # Review-specific instructions loaded from template
-          prompt: ${{ steps.load-instructions.outputs.CUSTOM_INSTRUCTIONS }}
+          prompt-file: /tmp/codex-review-prompt.md
 
-          # Configure Codex for read-only access (no workspace writes)
-          codex_args: '["--config","sandbox_mode=\"read-only\""]'
+          # Output file for Codex results
+          output-file: codex-output.md
+
+          # Configure Codex for read-only access
+          safety-strategy: drop-sudo
+          sandbox: read-only
 
   unauthorized-message:
     # Post message for unauthorized users

@@ -32,6 +32,11 @@ jobs:
         with:
           fetch-depth: 0 # Full history for better context
 
+      - name: Configure Git
+        run: |
+          git config user.name "cursor-bot"
+          git config user.email "cursor-bot@users.noreply.github.com"
+
       - name: Install Cursor CLI
         run: |
           curl https://cursor.com/install -fsS | bash

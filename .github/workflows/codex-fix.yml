@@ -32,33 +32,36 @@ jobs:
         with:
           fetch-depth: 0 # Full history for better context
 
+      - name: Configure Git
+        run: |
+          git config user.name "codex-bot"
+          git config user.email "codex-bot@users.noreply.github.com"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Load fix instructions
-        id: load-instructions
+      - name: Prepare fix instructions
         run: |
           # Read the template and replace the AI_ASSISTANT placeholder
-          INSTRUCTIONS=$(cat .github/issue_fix_prompt.md | sed 's/{AI_ASSISTANT}/codex/g')
-          # Use heredoc to preserve multiline content
-          echo "CUSTOM_INSTRUCTIONS<<EOF" >> $GITHUB_OUTPUT
-          echo "$INSTRUCTIONS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          cat .github/issue_fix_prompt.md | sed 's/{AI_ASSISTANT}/codex/g' > /tmp/codex-fix-prompt.md
 
       - name: Run Codex Fix
         id: codex
-        uses: openai/codex-action@main
+        uses: openai/codex-action@v1
         timeout-minutes: 30
         with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 
           # Fix-specific instructions loaded from template
-          prompt: ${{ steps.load-instructions.outputs.CUSTOM_INSTRUCTIONS }}
+          prompt-file: /tmp/codex-fix-prompt.md
+
+          # Output file for Codex results
+          output-file: codex-output.md
 
           # Configure Codex for workspace write access
-          codex_args: '["--config","sandbox_mode=\"workspace-write\""]'
+          sandbox: workspace-write
 
   unauthorized-message:
     # Post message for unauthorized users
